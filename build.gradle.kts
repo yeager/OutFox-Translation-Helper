@@ -6,7 +6,7 @@ plugins {
 }
 
 group = "tinyfoxes"
-version = "0.1"
+version = "0.1.1"
 
 repositories {
     mavenCentral()

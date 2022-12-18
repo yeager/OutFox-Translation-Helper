@@ -3,7 +3,7 @@ package util
 import model.TranslationString
 
 var translationStrings: List<TranslationString>? = null
-var userLanguage = "nl" // "en"
+var userLanguage = "en" // "nl"
 
 fun s(translationString: String): String {
     if (translationStrings == null) {
