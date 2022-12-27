@@ -34,7 +34,7 @@ fun startMenu() {
 }
 
 fun askRootFolder() {
-    println(s("[cli]Please provide the root folder for the translations: (full path) (e.g. /Users/frankbouwens/priv/Outfox/Tiny-Foxes/OutFox-NL/ )"))
+    println(s("[cli]Please provide the root folder for the translations: (full path) (e.g. /~/Tiny-Foxes/OutFox-NL/ )"))
     val input = readln()
     val tempFile = File(input)
     if (!tempFile.exists()) {
@@ -58,9 +58,9 @@ fun askRootFolder() {
 
 fun askLangCode(prompt: String): String? {
     println(prompt)
-    val langCode = readln().lowercase()
-    if (langCode.length != 2 || !"\\w\\w".toRegex().matches(langCode)) {
-        println(String.format(s("[cli]That is not a 2 letter language code %s."),langCode))
+    val langCode = readln()
+    if (!"\\w\\w".toRegex().matches(langCode) && !"\\w\\w-\\w\\w".toRegex().matches(langCode)) {
+        println(String.format(s("[cli]That is not a valid letter language code %s."), langCode))
         return null
     }
     return langCode
@@ -73,12 +73,12 @@ fun checkForMissingKeys() {
     }
 
     if (sourceLangCode == null) {
-        sourceLangCode = askLangCode(s("[cli]Please enter source language (as 2-letter code, e.g. 'en')")) ?: return
+        sourceLangCode = askLangCode(s("[cli]Please enter source language (as language code, e.g. 'en')")) ?: return
     }
     val safeSourceLangCode = sourceLangCode ?: return
 
     if (targetLangCode == null) {
-        targetLangCode = askLangCode(s("[cli]Please enter target language (as 2-letter code, e.g. 'nl')")) ?: return
+        targetLangCode = askLangCode(s("[cli]Please enter target language (as language code, e.g. 'nl')")) ?: return
     }
     val safeTargetLangCode = targetLangCode ?: return
 
@@ -110,5 +110,6 @@ fun checkForMissingKeys() {
         println(s("[cli]No missing strings"))
     }
 
-    println(String.format(s("[cli]Done. Missing %s: %d; Missing %s: %d"),safeSourceLangCode, numMissingSourceLang, safeTargetLangCode, numMissingTargetLang))
+    println(String.format(s("[cli]Done. Missing %s: %d; Missing %s: %d"), safeSourceLangCode, numMissingSourceLang, safeTargetLangCode, numMissingTargetLang))
+    println(String.format(s("[cli]Total strings: %s"), sourceStrings.size))
 }
