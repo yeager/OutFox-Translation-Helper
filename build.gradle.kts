@@ -6,7 +6,7 @@ plugins {
 }
 
 group = "com.tinyfoxes.translationhelper"
-version = "0.1.1"
+version = "0.1.2"
 
 repositories {
     mavenCentral()
@@ -34,5 +34,5 @@ tasks {
 }
 
 application {
-    mainClass.set("MainKt")
+    mainClass.set("com.tinyfoxes.translationhelper.MainKt")
 }

@@ -30,3 +30,10 @@ Support
 -------
 
 If you need help with the program, ask for FrankkieNL in the Project OutFox Discord server.
+
+Development
+-----------
+
+This project uses the Gradle build system. I recommend using the IDE, IntelliJ IDEA, which has built-in support.
+Use the gradle task fatJar to create a stand-alone runnable jar.
+Make sure to update the version in build.gradle.kts.
