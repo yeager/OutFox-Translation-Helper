@@ -1,18 +1,37 @@
-import util.loadTranslationStrings
-import util.s
+package com.tinyfoxes.translationhelper
+
+import com.tinyfoxes.translationhelper.util.Util
+import com.tinyfoxes.translationhelper.model.TranslationString
+import com.tinyfoxes.translationhelper.util.AppPreferences
+import com.tinyfoxes.translationhelper.util.s
 import java.io.File
 import kotlin.system.exitProcess
 
+//Preferences
 var rootFolder: File? = null //File("/Users/frankbouwens/priv/Outfox/Tiny-Foxes/OutFox-NL/")
+var subFolder: String? = null //"_fallback" or "default"
 var sourceLangCode: String? = null //"en"
 var targetLangCode: String? = null //"nl"
 
 fun main(args: Array<String>) {
     println(s("[general]Translation Helper for Project OutFox; by FrankkieNL"))
 
+    initAppPreferences()
+
     while (true) {
         startMenu()
     }
+}
+
+fun initAppPreferences() {
+    val prefs = Util.getPreferences()
+    val rootFolderString = prefs.get(AppPreferences.ROOT_FOLDER, null)
+    if (rootFolderString != null && rootFolderString.isNotBlank()) {
+        rootFolder = File(rootFolderString)
+    }
+    subFolder = prefs.get(AppPreferences.SUB_FOLDER, null)
+    sourceLangCode = prefs.get(AppPreferences.SOURCE_LANG_CODE, null)
+    targetLangCode = prefs.get(AppPreferences.TARGET_LANG_CODE, null)
 }
 
 fun startMenu() {
@@ -21,6 +40,8 @@ fun startMenu() {
         ${s("[cli]Menu:")}
         0) ${s("[cli]Exit")}
         1) ${s("[cli]Check for missing keys")}
+        2) ${s("[cli]Check app settings")}
+        3) ${s("[cli]Edit app settings")}
     """.trimIndent()
     )
     val input = readln()
@@ -28,32 +49,31 @@ fun startMenu() {
         when (input.toInt()) {
             0 -> exitProcess(0)
             1 -> checkForMissingKeys()
+            2 -> checkAppSettings()
+            3 -> editAppSettings()
             else -> println(s("[cli]Number not found"))
         }
     }
 }
 
-fun askRootFolder() {
+fun askRootFolder(): File? {
     println(s("[cli]Please provide the root folder for the translations: (full path) (e.g. /~/Tiny-Foxes/OutFox-NL/ )"))
     val input = readln()
     val tempFile = File(input)
     if (!tempFile.exists()) {
         println(s("[cli]File does not exist"))
-        return
+        return null
     }
     if (!tempFile.canRead()) {
         println(s("[cli]File cannot be read"))
-        return
+        return null
     }
     if (!tempFile.isDirectory) {
         println(s("[cli]File is not a directory"))
-        return
+        return null
     }
     //All ok
-    rootFolder = tempFile
-    rootFolder?.let { safeRootFolder ->
-        println(String.format(s("[cli]Set as root folder: %s"), safeRootFolder.absolutePath))
-    }
+    return tempFile
 }
 
 fun askLangCode(prompt: String): String? {
@@ -66,30 +86,51 @@ fun askLangCode(prompt: String): String? {
     return langCode
 }
 
+fun askSubFolder(): String {
+    println(s("[cli]Please enter sub-folder (leave blank for \"_fallback\")"))
+    val input = readln()
+    if (input.isBlank()) {
+        return "_fallback"
+    }
+    return input
+}
+
 fun checkForMissingKeys() {
     if (rootFolder == null) {
-        askRootFolder()
-        return
+        rootFolder = askRootFolder() ?: return
     }
+    val safeRootFolder = rootFolder ?: return
+    println(String.format(s("[cli]Set as root folder: %s"), safeRootFolder.absolutePath))
+    Util.getPreferences().put(AppPreferences.ROOT_FOLDER, safeRootFolder.absolutePath)
+
+    if (subFolder == null) {
+        subFolder = askSubFolder()
+    }
+    val safeSubFolder = subFolder ?: return
+    println(String.format(s("[cli]Set as sub folder: %s"), safeRootFolder))
+    Util.getPreferences().put(AppPreferences.SUB_FOLDER, safeSubFolder)
 
     if (sourceLangCode == null) {
         sourceLangCode = askLangCode(s("[cli]Please enter source language (as language code, e.g. 'en')")) ?: return
     }
     val safeSourceLangCode = sourceLangCode ?: return
+    Util.getPreferences().put(AppPreferences.SOURCE_LANG_CODE, safeSourceLangCode)
 
     if (targetLangCode == null) {
         targetLangCode = askLangCode(s("[cli]Please enter target language (as language code, e.g. 'nl')")) ?: return
     }
     val safeTargetLangCode = targetLangCode ?: return
+    Util.getPreferences().put(AppPreferences.TARGET_LANG_CODE, safeTargetLangCode)
 
-    val sourceStrings = loadTranslationStrings("_fallback", safeSourceLangCode)
-    val targetStrings = loadTranslationStrings("_fallback", safeTargetLangCode)
+
+    val sourceStrings = Util.loadTranslationStrings(safeRootFolder, safeSubFolder, safeSourceLangCode)
+    val targetStrings = Util.loadTranslationStrings(safeRootFolder, safeSubFolder, safeTargetLangCode)
 
     var numMissingSourceLang = 0
     var numMissingTargetLang = 0
     println(s("Checking for missing keys..."))
     println(String.format(s("[cli]%s strings missing in the %s strings: "), safeSourceLangCode, safeTargetLangCode))
-    sourceStrings.forEach { sourceString ->
+    sourceStrings.forEach { sourceString: TranslationString ->
         if (!targetStrings.contains(sourceString)) {
             println("L${sourceString.linenumber} [${sourceString.section}] ${sourceString.key}=${sourceString.translation}")
             numMissingSourceLang++
@@ -100,7 +141,7 @@ fun checkForMissingKeys() {
     }
 
     println(String.format(s("[cli]%s strings missing in the %s strings: "), safeTargetLangCode, safeSourceLangCode))
-    targetStrings.forEach { targetString ->
+    targetStrings.forEach { targetString: TranslationString ->
         if (!sourceStrings.contains(targetString)) {
             println("L${targetString.linenumber} [${targetString.section}] ${targetString.key}=${targetString.translation}")
             numMissingTargetLang++
@@ -112,4 +153,66 @@ fun checkForMissingKeys() {
 
     println(String.format(s("[cli]Done. Missing %s: %d; Missing %s: %d"), safeSourceLangCode, numMissingSourceLang, safeTargetLangCode, numMissingTargetLang))
     println(String.format(s("[cli]Total strings: %s"), sourceStrings.size))
+}
+
+private fun checkAppSettings() {
+    val prefs = Util.getPreferences()
+    println(
+        """
+        ${AppPreferences.ROOT_FOLDER}=${prefs.get(AppPreferences.ROOT_FOLDER, "null")}
+        ${AppPreferences.SUB_FOLDER}=${prefs.get(AppPreferences.SUB_FOLDER, "null")}
+        ${AppPreferences.SOURCE_LANG_CODE}=${prefs.get(AppPreferences.SOURCE_LANG_CODE, "null")}
+        ${AppPreferences.TARGET_LANG_CODE}=${prefs.get(AppPreferences.TARGET_LANG_CODE, "null")}      
+    """.trimIndent()
+    )
+}
+
+private fun editAppSettings() {
+    println(
+        """
+        ${s("[cli]Menu:")}
+        0) ${s("[cli]Cancel")}
+        1) ${AppPreferences.ROOT_FOLDER}
+        2) ${AppPreferences.SUB_FOLDER}
+        3) ${AppPreferences.SOURCE_LANG_CODE}
+        4) ${AppPreferences.TARGET_LANG_CODE}
+    """.trimIndent()
+    )
+
+
+    val input1 = readln()
+    if (input1.toIntOrNull() == null) return
+    when (input1.toInt()) {
+        0 -> {
+            return
+        }
+        1 -> {
+            rootFolder = askRootFolder()
+            rootFolder?.let { safeRootFolder ->
+                println(String.format(s("[cli]Set as root folder: %s"), safeRootFolder.absolutePath))
+                Util.getPreferences().put(AppPreferences.ROOT_FOLDER, safeRootFolder.absolutePath)
+            }
+        }
+
+        2 -> {
+            subFolder = askSubFolder()
+            subFolder?.let { safeSubFolder ->
+                println(String.format(s("[cli]Set as sub folder: %s"), safeSubFolder))
+                Util.getPreferences().put(AppPreferences.SUB_FOLDER, safeSubFolder)
+            }
+        }
+
+        3 -> {
+            sourceLangCode = askLangCode(s("[cli]Please enter source language (as language code, e.g. 'en')")) ?: return
+            Util.getPreferences().put(AppPreferences.SOURCE_LANG_CODE, sourceLangCode)
+        }
+
+        4 -> {
+            targetLangCode = askLangCode(s("[cli]Please enter target language (as language code, e.g. 'nl')")) ?: return
+            Util.getPreferences().put(AppPreferences.TARGET_LANG_CODE, targetLangCode)
+
+        }
+
+        else -> println(s("[cli]Number not found"))
+    }
 }

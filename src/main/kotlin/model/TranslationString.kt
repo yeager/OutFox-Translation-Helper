@@ -1,4 +1,4 @@
-package model
+package com.tinyfoxes.translationhelper.model
 
 data class TranslationString(val section: String?, val key: String, val translation: String, val linenumber: Int) {
     override fun equals(other: Any?): Boolean {
