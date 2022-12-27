@@ -40,8 +40,9 @@ fun startMenu() {
         ${s("[cli]Menu:")}
         0) ${s("[cli]Exit")}
         1) ${s("[cli]Check for missing keys")}
-        2) ${s("[cli]Check app settings")}
-        3) ${s("[cli]Edit app settings")}
+        2) ${s("[cli]Check for non-translated keys")}
+        3) ${s("[cli]Check app settings")}
+        4) ${s("[cli]Edit app settings")}
     """.trimIndent()
     )
     val input = readln()
@@ -49,8 +50,9 @@ fun startMenu() {
         when (input.toInt()) {
             0 -> exitProcess(0)
             1 -> checkForMissingKeys()
-            2 -> checkAppSettings()
-            3 -> editAppSettings()
+            2 -> checkForNonTranslatedKeys()
+            3 -> checkAppSettings()
+            4 -> editAppSettings()
             else -> println(s("[cli]Number not found"))
         }
     }
@@ -95,34 +97,49 @@ fun askSubFolder(): String {
     return input
 }
 
-fun checkForMissingKeys() {
+/**
+ * Returns true when all is well
+ */
+fun checkSettings(): Boolean {
     if (rootFolder == null) {
-        rootFolder = askRootFolder() ?: return
+        rootFolder = askRootFolder() ?: return false
     }
-    val safeRootFolder = rootFolder ?: return
+    val safeRootFolder = rootFolder ?: return false
     println(String.format(s("[cli]Set as root folder: %s"), safeRootFolder.absolutePath))
     Util.getPreferences().put(AppPreferences.ROOT_FOLDER, safeRootFolder.absolutePath)
 
     if (subFolder == null) {
         subFolder = askSubFolder()
     }
-    val safeSubFolder = subFolder ?: return
+    val safeSubFolder = subFolder ?: return false
     println(String.format(s("[cli]Set as sub folder: %s"), safeRootFolder))
     Util.getPreferences().put(AppPreferences.SUB_FOLDER, safeSubFolder)
 
     if (sourceLangCode == null) {
-        sourceLangCode = askLangCode(s("[cli]Please enter source language (as language code, e.g. 'en')")) ?: return
+        sourceLangCode = askLangCode(s("[cli]Please enter source language (as language code, e.g. 'en')")) ?: return false
     }
-    val safeSourceLangCode = sourceLangCode ?: return
+    val safeSourceLangCode = sourceLangCode ?: return false
     Util.getPreferences().put(AppPreferences.SOURCE_LANG_CODE, safeSourceLangCode)
 
     if (targetLangCode == null) {
-        targetLangCode = askLangCode(s("[cli]Please enter target language (as language code, e.g. 'nl')")) ?: return
+        targetLangCode = askLangCode(s("[cli]Please enter target language (as language code, e.g. 'nl')")) ?: return false
     }
-    val safeTargetLangCode = targetLangCode ?: return
+    val safeTargetLangCode = targetLangCode ?: return false
     Util.getPreferences().put(AppPreferences.TARGET_LANG_CODE, safeTargetLangCode)
 
+    return true
+}
 
+fun checkForMissingKeys() {
+    if (!checkSettings()) {
+        return
+    }
+    val safeRootFolder = rootFolder ?: return
+    val safeSubFolder = subFolder ?: return
+    val safeSourceLangCode = sourceLangCode ?: return
+    val safeTargetLangCode = targetLangCode ?: return
+
+    //
     val sourceStrings = Util.loadTranslationStrings(safeRootFolder, safeSubFolder, safeSourceLangCode)
     val targetStrings = Util.loadTranslationStrings(safeRootFolder, safeSubFolder, safeTargetLangCode)
 
@@ -153,6 +170,34 @@ fun checkForMissingKeys() {
 
     println(String.format(s("[cli]Done. Missing %s: %d; Missing %s: %d"), safeSourceLangCode, numMissingSourceLang, safeTargetLangCode, numMissingTargetLang))
     println(String.format(s("[cli]Total strings: %s"), sourceStrings.size))
+}
+
+private fun checkForNonTranslatedKeys() {
+    if (!checkSettings()) {
+        return
+    }
+    val safeRootFolder = rootFolder ?: return
+    val safeSubFolder = subFolder ?: return
+    val safeSourceLangCode = sourceLangCode ?: return
+    val safeTargetLangCode = targetLangCode ?: return
+
+    val sourceStrings = Util.loadTranslationStrings(safeRootFolder, safeSubFolder, safeSourceLangCode)
+    val targetStrings = Util.loadTranslationStrings(safeRootFolder, safeSubFolder, safeTargetLangCode)
+
+    var sameTranslations = 0
+    println(s("[cli]Translations that are the same (possibly not translated):"))
+    sourceStrings.forEach { sourceString ->
+        //ignore translations that consists only out of numbers (e.g. "Dance_Double=8")
+        if ("\\d+".toRegex().matches(sourceString.translation)) {
+            return@forEach
+        }
+        val targetString = targetStrings.firstOrNull { it.key == sourceString.key } ?: return@forEach
+        if (sourceString.translation == targetString.translation) {
+            println("L${sourceString.linenumber} [${sourceString.section}] ${sourceString.key}=${sourceString.translation}")
+            sameTranslations++
+        }
+    }
+    println(String.format(s("[cli]Number of same translations: %s"), sameTranslations))
 }
 
 private fun checkAppSettings() {
@@ -186,6 +231,7 @@ private fun editAppSettings() {
         0 -> {
             return
         }
+
         1 -> {
             rootFolder = askRootFolder()
             rootFolder?.let { safeRootFolder ->
