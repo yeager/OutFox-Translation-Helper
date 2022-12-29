@@ -112,7 +112,7 @@ fun checkSettings(): Boolean {
         subFolder = askSubFolder()
     }
     val safeSubFolder = subFolder ?: return false
-    println(String.format(s("[cli]Set as sub folder: %s"), safeRootFolder))
+    println(String.format(s("[cli]Set as sub folder: %s"), safeSubFolder))
     Util.getPreferences().put(AppPreferences.SUB_FOLDER, safeSubFolder)
 
     if (sourceLangCode == null) {
