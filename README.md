@@ -26,6 +26,8 @@ java -jar translation-helper.jar
 Then just follow the instructions in the program.  
 The program will list the missing keys, when comparing the source and target files.
 
+For more detailed explanation on how to use the app; See `MANUAL.md`
+
 Support
 -------
 

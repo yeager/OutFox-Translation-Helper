@@ -228,10 +228,13 @@ private fun editAppSettings() {
     val input1 = readln()
     if (input1.toIntOrNull() == null) return
     when (input1.toInt()) {
+        -1 -> {
+            //Clear all settings
+            Util.getPreferences().clear()
+        }
         0 -> {
             return
         }
-
         1 -> {
             rootFolder = askRootFolder()
             rootFolder?.let { safeRootFolder ->
