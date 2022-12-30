@@ -1,8 +1,8 @@
 package com.tinyfoxes.translationhelper.util
+import com.tinyfoxes.translationhelper.appLanguage
 import com.tinyfoxes.translationhelper.model.TranslationString
 
 var translationStrings: List<TranslationString>? = null
-var userLanguage = "en" // "nl"
 
 fun s(translationString: String): String {
     if (translationStrings == null) {
@@ -18,6 +18,6 @@ fun s(translationString: String): String {
 }
 
 fun initTranslations() {
-    val text = {}::class.java.classLoader.getResource("$userLanguage.ini")?.readText() ?: return
+    val text = {}::class.java.classLoader.getResource("$appLanguage.ini")?.readText() ?: return
     translationStrings = Util.loadTranslationStrings(text)
 }

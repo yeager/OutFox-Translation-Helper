@@ -3,11 +3,13 @@ package com.tinyfoxes.translationhelper
 import com.tinyfoxes.translationhelper.util.Util
 import com.tinyfoxes.translationhelper.model.TranslationString
 import com.tinyfoxes.translationhelper.util.AppPreferences
+import com.tinyfoxes.translationhelper.util.initTranslations
 import com.tinyfoxes.translationhelper.util.s
 import java.io.File
 import kotlin.system.exitProcess
 
 //Preferences
+var appLanguage: String = "en" //en, nl, or pt-br
 var rootFolder: File? = null //File("/Users/frankbouwens/priv/Outfox/Tiny-Foxes/OutFox-NL/")
 var subFolder: String? = null //"_fallback" or "default"
 var sourceLangCode: String? = null //"en"
@@ -25,6 +27,7 @@ fun main(args: Array<String>) {
 
 fun initAppPreferences() {
     val prefs = Util.getPreferences()
+    appLanguage = prefs.get(AppPreferences.APP_LANGUAGE, "en")
     val rootFolderString = prefs.get(AppPreferences.ROOT_FOLDER, null)
     if (rootFolderString != null && rootFolderString.isNotBlank()) {
         rootFolder = File(rootFolderString)
@@ -82,6 +85,23 @@ fun askLangCode(prompt: String): String? {
     println(prompt)
     val langCode = readln()
     if (!"\\w\\w".toRegex().matches(langCode) && !"\\w\\w-\\w\\w".toRegex().matches(langCode)) {
+        println(String.format(s("[cli]That is not a valid letter language code %s."), langCode))
+        return null
+    }
+    return langCode
+}
+
+fun askAppLanguage() : String? {
+    println("[cli]Please select a language;")
+    println("[cli]Fill in one of the following languages codes:")
+    println("""
+        en
+        nl
+        pt-br
+    """.trimIndent())
+    println("[cli]Or leave empty to cancel")
+    val langCode = readln().lowercase()
+    if (!"(en|nl|pt\\-br)".toRegex().matches(langCode)) {
         println(String.format(s("[cli]That is not a valid letter language code %s."), langCode))
         return null
     }
@@ -204,6 +224,7 @@ private fun checkAppSettings() {
     val prefs = Util.getPreferences()
     println(
         """
+        ${AppPreferences.APP_LANGUAGE}=${prefs.get(AppPreferences.APP_LANGUAGE, "null")}
         ${AppPreferences.ROOT_FOLDER}=${prefs.get(AppPreferences.ROOT_FOLDER, "null")}
         ${AppPreferences.SUB_FOLDER}=${prefs.get(AppPreferences.SUB_FOLDER, "null")}
         ${AppPreferences.SOURCE_LANG_CODE}=${prefs.get(AppPreferences.SOURCE_LANG_CODE, "null")}
@@ -217,10 +238,11 @@ private fun editAppSettings() {
         """
         ${s("[cli]Menu:")}
         0) ${s("[cli]Cancel")}
-        1) ${AppPreferences.ROOT_FOLDER}
-        2) ${AppPreferences.SUB_FOLDER}
-        3) ${AppPreferences.SOURCE_LANG_CODE}
-        4) ${AppPreferences.TARGET_LANG_CODE}
+        1) ${AppPreferences.APP_LANGUAGE}
+        2) ${AppPreferences.ROOT_FOLDER}
+        3) ${AppPreferences.SUB_FOLDER}
+        4) ${AppPreferences.SOURCE_LANG_CODE}
+        5) ${AppPreferences.TARGET_LANG_CODE}
     """.trimIndent()
     )
 
@@ -232,10 +254,22 @@ private fun editAppSettings() {
             //Clear all settings
             Util.getPreferences().clear()
         }
+
         0 -> {
             return
         }
+
         1 -> {
+            val tempAppLanguage = askAppLanguage()
+            if (tempAppLanguage != null) {
+                appLanguage = tempAppLanguage
+                println(String.format(s("[cli]Set as app language: %s"), appLanguage))
+                initTranslations()
+                Util.getPreferences().put(AppPreferences.APP_LANGUAGE, appLanguage)
+            }
+        }
+
+        2 -> {
             rootFolder = askRootFolder()
             rootFolder?.let { safeRootFolder ->
                 println(String.format(s("[cli]Set as root folder: %s"), safeRootFolder.absolutePath))
@@ -243,7 +277,7 @@ private fun editAppSettings() {
             }
         }
 
-        2 -> {
+        3 -> {
             subFolder = askSubFolder()
             subFolder?.let { safeSubFolder ->
                 println(String.format(s("[cli]Set as sub folder: %s"), safeSubFolder))
@@ -251,12 +285,12 @@ private fun editAppSettings() {
             }
         }
 
-        3 -> {
+        4 -> {
             sourceLangCode = askLangCode(s("[cli]Please enter source language (as language code, e.g. 'en')")) ?: return
             Util.getPreferences().put(AppPreferences.SOURCE_LANG_CODE, sourceLangCode)
         }
 
-        4 -> {
+        5 -> {
             targetLangCode = askLangCode(s("[cli]Please enter target language (as language code, e.g. 'nl')")) ?: return
             Util.getPreferences().put(AppPreferences.TARGET_LANG_CODE, targetLangCode)
 
