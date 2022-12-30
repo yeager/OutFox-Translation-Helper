@@ -87,6 +87,8 @@ The `java`-command should be available from you Terminal (Mac/Linux) or Commandl
 If not, check how to add the `java` command to your operating system's `PATH`-variable.  
 (I will not explain that here, just search online how to edit the `PATH`-variable on your OS)
 
+You can download the `.jar` file from the Releases section in the GitHub repository. 
+
 Open a terminal, and run the following command, to start the application:  
 ```
 java -jar translation-helper.jar
